@@ -9,4 +9,4 @@ rebuild_all:
 	cmake -DCMAKE_BUILD_TYPE=Release -H. -Bbuild && cmake --build build -- -j4
 
 test: build_all
-	./build/unit_tests
+	cd build && ./unit_tests

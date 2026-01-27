@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <functional>
+#include <optional>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -87,6 +88,27 @@ public:
     //     }
     //     return pkt;
     // }
+
+    std::optional<AVPacket*> read() {
+        AVPacket *pkt = av_packet_alloc();
+        int ret = av_read_frame(fmt_ctx, pkt);
+        if (ret < 0) std::cerr << "av_read_frame = " << ret << std::endl;
+        if (ret == AVERROR_EOF) return std::nullopt;
+        else return pkt;
+    }
+
+    AVCodecContext* Codec(int index) const {
+
+        // avcodec_register_all();
+        // av_dict_set(&opts, "b", "2.5M", 0);
+        const AVCodec* codec = avcodec_find_decoder(fmt_ctx->streams[index]->codecpar->codec_id);
+        AVCodecContext* context = avcodec_alloc_context3(codec);
+        int ret0 = avcodec_parameters_to_context(context, fmt_ctx->streams[index]->codecpar);
+        if (ret0<0) std::cerr << "avcodec_parameters_to_context =" << ret0 << std::endl;
+        int ret = avcodec_open2(context, codec, nullptr);
+        if (ret<0) std::cerr << "avcodec_open2 =" << ret << std::endl;
+        return context;
+    }
 
 private:
     static int Read(void *opaque, uint8_t *buf, int buf_size) {

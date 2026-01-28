@@ -55,7 +55,7 @@ class Decoder {
   AVCodecContext* data() { return context_; }
   const AVCodecContext* data() const { return context_; }
 
- private:
+ protected:
   const AVCodecParameters* codec_param_;
   const AVFormatContext* fmt_ctx_;
   const AVCodec* codec_;

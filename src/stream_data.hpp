@@ -43,11 +43,20 @@ class Frame {
     frame_ = f.frame_;
     f.frame_ = nullptr;
   }
-
   ~Frame() {
     if (frame_ != nullptr) {
       av_frame_unref(frame_);
     }
+  }
+
+  Frame& operator=(Frame&& f) {
+    frame_ = f.frame_;
+    f.frame_ = nullptr;
+    return *this;
+  }
+  Frame& operator=(const Frame& f) {
+    frame_ = av_frame_clone(f.frame_);
+    return *this;
   }
 
   AVFrame* data() { return frame_; }

@@ -13,6 +13,7 @@ extern "C" {
 }
 
 #include "demux.hpp"
+#include "audio.hpp"
 
 TEST(DemuxTest, BasicTest) {
   const std::string input_file_name = "test_data/orders.mp3";
@@ -30,6 +31,7 @@ TEST(DemuxTest, ReadAllFrames) {
   int got_frame_ptr;
   std::clog << "demux.GetDecoder(0)" << std::endl;
   auto codec = demux.GetDecoder(0);
+  AudioDecoder<float> audio_codec(codec);
   // std::clog << "codec name = " << codec->codec_descriptor->name
   //           << "; codec sample_fmt = " << codec->sample_fmt << std::endl;
 
@@ -40,17 +42,21 @@ TEST(DemuxTest, ReadAllFrames) {
     if (packet->StreamIndex() != 0) continue;
     std::clog << "codec.Write(*packet)" << std::endl;
     ASSERT_FALSE(codec.Write(*packet));
-    while (auto frame = codec.Read()) {
-      std::clog << "$$$ samples=" << frame->data()->nb_samples
-                << " // channels=" << frame->data()->ch_layout.nb_channels
-                << std::endl;
-      if (codec.data()->sample_fmt == AV_SAMPLE_FMT_FLTP) {
-        float* buffer = (float*)frame->data()->data[0];
-        for (int i = 0; i < frame->data()->nb_samples; ++i) {
-          std::clog << " " << buffer[i];
-        }
-      }
-      std::clog << std::endl;
+    while (auto sample = audio_codec.Read()) {
+      std::clog << sample->sample(0) << " ";
     }
+    std::clog << std::endl;
+    // while (auto frame = codec.Read()) {
+    //   std::clog << "$$$ samples=" << frame->data()->nb_samples
+    //             << " // channels=" << frame->data()->ch_layout.nb_channels
+    //             << std::endl;
+    //   if (codec.data()->sample_fmt == AV_SAMPLE_FMT_FLTP) {
+    //     float* buffer = (float*)frame->data()->data[0];
+    //     for (int i = 0; i < frame->data()->nb_samples; ++i) {
+    //       std::clog << " " << buffer[i];
+    //     }
+    //   }
+    //   std::clog << std::endl;
+    // }
   }
 }

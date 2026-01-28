@@ -1,0 +1,53 @@
+#pragma once
+
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <optional>
+
+extern "C" {
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libavformat/avio.h>
+#include <libavutil/file.h>
+}
+
+#include "decoder.hpp"
+
+template <typename SampleType>
+class AudioSample {
+ public:
+  AudioSample(int channels) : samples_(channels, SampleType()) {}
+
+  SampleType& sample(int channel) { return samples_[channel]; }
+  const SampleType& sample(int channel) const { return samples_[channel]; }
+
+ private:
+  std::vector<SampleType> samples_;
+};
+
+template <typename SampleType>
+class AudioDecoder {
+ public:
+  AudioDecoder(Decoder& decoder) : decoder_(decoder) {}
+  std::optional<AudioSample<SampleType>> Read() {
+    if (!frame_) {
+        frame_ = decoder_.Read();
+        index_ = 0;
+        if (!frame_) return std::nullopt;
+    }
+    AudioSample<SampleType> sample(frame_->data()->ch_layout.nb_channels);
+    for (int i=0;i<frame_->data()->ch_layout.nb_channels;++i) {
+        sample.sample(i) = ((SampleType*)frame_->data()->data[i])[index_];
+    }
+    ++index_;
+    if (index_ >= frame_->data()->nb_samples) {
+        frame_ = std::nullopt;
+    }
+    return sample;
+  }
+ protected:
+  Decoder& decoder_;
+  int index_;
+  std::optional<Frame> frame_;
+};

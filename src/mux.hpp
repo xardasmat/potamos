@@ -21,10 +21,6 @@ class Mux {
       : stream_(stream) {
     // Create the muxer context
     fmt_ctx = avformat_alloc_context();
-    // if (!()) {
-    //     ret = AVERROR(ENOMEM);
-    //     goto end;
-    // }
 
     // Choose the muxer type
     fmt_ctx->oformat = av_guess_format(format.c_str(), NULL, NULL);
@@ -34,60 +30,29 @@ class Mux {
       streams_.push_back(avformat_new_stream(fmt_ctx, nullptr));
       // avcodec_parameters_from_context(streams_.back()->codecpar, ctx);
       avcodec_parameters_copy(streams_.back()->codecpar, codec);
-      streams_.back()->time_base = (AVRational){1, streams_.back()->codecpar->sample_rate};
-
-      std::clog << " :: codec type = " << streams_.back()->codecpar->bits_per_coded_sample
-                << std::endl;
-      // avcodec_free_context(&ctx);
+      streams_.back()->time_base =
+          (AVRational){1, streams_.back()->codecpar->sample_rate};
     }
 
     avio_ctx_buffer = (uint8_t*)av_malloc(avio_ctx_buffer_size);
-    // if (!avio_ctx_buffer) {
-    //     ret = AVERROR(ENOMEM);
-    //     goto end;
-    // }
     avio_ctx = avio_alloc_context(avio_ctx_buffer, avio_ctx_buffer_size, 1,
                                   this, nullptr, &Mux::Write, &Mux::Seek);
     if (!avio_ctx) {
-      std::clog << " ?? " << std::endl;
+      std::cerr << "avio_alloc_context failed" << std::endl;
     }
 
     fmt_ctx->pb = avio_ctx;
     fmt_ctx->flags |= AVFMT_FLAG_CUSTOM_IO;
-
-    // int ret = avformat_open_input(&fmt_ctx, NULL, NULL, NULL);
-    // if (ret < 0) {
-    //     std::string
-    //     error(av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE),
-    //     AV_ERROR_MAX_STRING_SIZE, ret)); std::clog << "Could not open input:
-    //     " << error << std::endl; return;
-    // }
-
-    // ret = avformat_find_stream_info(fmt_ctx, NULL);
-    // if (ret < 0) {
-    //     std::clog << "Could not find stream information" << std::endl;
-    //     return;
-    // }
-
-    // av_dump_format(fmt_ctx, 0, "std::ifstream", 0);
   }
 
   ~Mux() {
-    std::clog << __FILE__ << " " << __LINE__ << " EnsureHeader" << std::endl;
     EnsureHeader();
-    std::clog << __FILE__ << " " << __LINE__ << " EnsureTrailer" << std::endl;
     EnsureTrailer();
 
-    std::clog << __FILE__ << " " << __LINE__ << " av_freep" << std::endl;
     if (avio_ctx) av_freep(&avio_ctx->buffer);
     // av_freep(&avio_ctx_buffer);
-    std::clog << __FILE__ << " " << __LINE__ << " avio_context_free"
-              << std::endl;
     avio_context_free(&avio_ctx);
-    std::clog << __FILE__ << " " << __LINE__ << " avformat_free_context"
-              << std::endl;
     avformat_free_context(fmt_ctx);
-    std::clog << __FILE__ << " " << __LINE__ << " eof ~Mux" << std::endl;
   }
 
   void EnsureHeader() {
@@ -110,16 +75,11 @@ class Mux {
 
   bool Write(Packet&& packet) {
     EnsureHeader();
-    std::clog << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__ << " " << packet.data()->size << ", " << packet.data()->pts
-              << std::endl;
-    // Packet local_packet = std::move(packet);
     packet.data()->side_data = nullptr;
     packet.data()->side_data_elems = 0;
     packet.data()->stream_index = 0;
 
     int ret = av_write_frame(fmt_ctx, packet.data());
-    std::clog << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__
-              << std::endl;
     return ret < 0;
   }
 
@@ -129,14 +89,10 @@ class Mux {
 
  private:
   static int Write(void* opaque, const uint8_t* buf, int buf_size) {
-    std::clog << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__
-              << std::endl;
     Mux* stream = static_cast<Mux*>(opaque);
     return stream->Write(buf, buf_size);
   }
   int Write(const uint8_t* buf, int buf_size) {
-    std::clog << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__
-              << std::endl;
     int64_t before = stream_.tellp();
     if (stream_.write((char*)buf, buf_size)) {
       return stream_.tellp() - before;
@@ -147,16 +103,10 @@ class Mux {
     }
   }
   static int64_t Seek(void* opaque, int64_t offset, int whence) {
-    std::clog << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__
-              << std::endl;
     Mux* stream = static_cast<Mux*>(opaque);
     return stream->Seek(offset, whence);
   }
   int64_t Seek(int64_t offset, int whence) {
-    std::clog << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__ << "("
-              << offset << ", " << whence << ")" << std::endl;
-    // std::clog << "SEEK: " << offset << " " << whence  << " (" << AVSEEK_SIZE
-    // << " / " << AVSEEK_FORCE << " ) " << std::endl;
     switch (whence) {
       case AVSEEK_SIZE: {
         return -1;

@@ -41,7 +41,6 @@ class Encoder {
   }
 
   bool Write(const Frame& frame) {
-    std::clog << "Framew write :D" << std::endl;
     int ret = avcodec_send_frame(context_, frame.data());
     return ret < 0;
   }
@@ -56,9 +55,6 @@ class Encoder {
     av_packet_rescale_ts(packet.data(),
                          (AVRational){1, codec_param_->sample_rate},
                          context_->time_base);
-    std::clog << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__ << " "
-              << context_->time_base.num << " / " << context_->time_base.den
-              << std::endl;
     return packet;
   }
 

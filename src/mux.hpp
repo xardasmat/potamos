@@ -75,9 +75,6 @@ class Mux {
 
   bool Write(Packet&& packet) {
     EnsureHeader();
-    packet.data()->side_data = nullptr;
-    packet.data()->side_data_elems = 0;
-    packet.data()->stream_index = 0;
 
     int ret = av_write_frame(fmt_ctx, packet.data());
     return ret < 0;

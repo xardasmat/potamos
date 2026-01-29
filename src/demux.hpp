@@ -119,21 +119,11 @@ class Demux {
       return count;
     }
   }
-  // static int Write(void *opaque, uint8_t *buf, int buf_size) {
-  //     Demux* stream = static_cast<Demux*>(opaque);
-  //     return stream->Write(buf, buf_size);
-  // }
-  // int Write(const uint8_t *buf, int buf_size) {
-  //     stream_.write((char*)buf, buf_size);
-  //     return buf_size;
-  // }
   static int64_t Seek(void* opaque, int64_t offset, int whence) {
     Demux* stream = static_cast<Demux*>(opaque);
     return stream->Seek(offset, whence);
   }
   int64_t Seek(int64_t offset, int whence) {
-    // std::clog << "SEEK: " << offset << " " << whence  << " (" << AVSEEK_SIZE
-    // << " / " << AVSEEK_FORCE << " ) " << std::endl;
     switch (whence) {
       case AVSEEK_SIZE: {
         return -1;

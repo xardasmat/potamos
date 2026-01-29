@@ -71,7 +71,6 @@ class AudioEncoder {
     }
     ++index_;
     if (index_ >= frame_->data()->nb_samples) {
-      // frame_->data()->nb_samples = index_;
       encoder_.Write(*frame_);
       frame_ = std::nullopt;
     }

@@ -32,8 +32,6 @@ TEST(DemuxTest, DISABLED_ReadAllFrames) {
   std::clog << "demux.GetDecoder(0)" << std::endl;
   auto codec = demux.GetDecoder(0);
   AudioDecoder<float> audio_codec(codec);
-  // std::clog << "codec name = " << codec->codec_descriptor->name
-  //           << "; codec sample_fmt = " << codec->sample_fmt << std::endl;
 
   std::clog << "While (auto packet = demux.read())" << std::endl;
   while (auto packet = demux.read()) {
@@ -46,17 +44,5 @@ TEST(DemuxTest, DISABLED_ReadAllFrames) {
       std::clog << sample->sample(0) << " ";
     }
     std::clog << std::endl;
-    // while (auto frame = codec.Read()) {
-    //   std::clog << "$$$ samples=" << frame->data()->nb_samples
-    //             << " // channels=" << frame->data()->ch_layout.nb_channels
-    //             << std::endl;
-    //   if (codec.data()->sample_fmt == AV_SAMPLE_FMT_FLTP) {
-    //     float* buffer = (float*)frame->data()->data[0];
-    //     for (int i = 0; i < frame->data()->nb_samples; ++i) {
-    //       std::clog << " " << buffer[i];
-    //     }
-    //   }
-    //   std::clog << std::endl;
-    // }
   }
 }

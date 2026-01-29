@@ -76,9 +76,12 @@ TEST(MuxTest, WriteBoingMp3) {
     sample.sample(0) = int16_t(sin(float(i) / 44100 * 3.14 * 2 * 1000) /
                                exp(i / 44100.0 * 10) * 20000);
     audio.Write(sample);
-    if (auto pkt = encoder.Read()) {
+    while (auto pkt = encoder.Read()) {
       mux.Write(std::move(*pkt));
     }
   }
   audio.Flush();
+  while (auto pkt = encoder.Read()) {
+    mux.Write(std::move(*pkt));
+  }
 }

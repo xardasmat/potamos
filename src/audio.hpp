@@ -79,11 +79,15 @@ class AudioEncoder {
 
   void Flush() {
     if (!frame_) {
-      return;
+      int ret = encoder_.Flush();
+      if (ret < 0)
+        std::cerr << "Flushing encoder failed = " << ret << std::endl;
     }
     frame_->data()->nb_samples = index_;
     encoder_.Write(*frame_);
     frame_ = std::nullopt;
+    int ret = encoder_.Flush();
+    if (ret < 0) std::cerr << "Flushing encoder failed = " << ret << std::endl;
   }
 
   int Channels() const { return encoder_.data()->ch_layout.nb_channels; }

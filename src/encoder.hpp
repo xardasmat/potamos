@@ -45,6 +45,11 @@ class Encoder {
     return ret < 0;
   }
 
+  bool Flush() {
+    int ret = avcodec_send_frame(context_, nullptr);
+    return ret < 0;
+  }
+
   std::optional<Packet> Read() {
     Packet packet;
     int ret = avcodec_receive_packet(context_, packet.data());

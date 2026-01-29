@@ -89,10 +89,12 @@ class Demux {
   std::optional<Packet> read() {
     Packet packet;
     int ret = av_read_frame(fmt_ctx, packet.data());
-    if (ret < 0) std::cerr << "av_read_frame = " << ret << std::endl;
     if (ret == AVERROR_EOF)
       return std::nullopt;
-    else
+    else if (ret < 0) {
+      std::cerr << "av_read_frame = " << ret << std::endl;
+      return std::nullopt;
+    } else
       return packet;
   }
 

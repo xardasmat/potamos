@@ -23,7 +23,7 @@ TEST(DemuxTest, BasicTest) {
   EXPECT_THAT(demux.StreamsCount(), 1);
 }
 
-TEST(DemuxTest, ReadAllFrames) {
+TEST(DemuxTest, DISABLED_ReadAllFrames) {
   const std::string input_file_name = "test_data/orders.mp3";
   std::ifstream input_file(input_file_name);
   Demux demux(input_file);

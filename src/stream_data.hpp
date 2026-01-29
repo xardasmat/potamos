@@ -26,6 +26,16 @@ class Packet {
     }
   }
 
+  Packet& operator=(Packet&& p) {
+    packet_ = p.packet_;
+    p.packet_ = nullptr;
+    return *this;
+  }
+  Packet& operator=(const Packet& p) {
+    packet_ = av_packet_clone(p.packet_);
+    return *this;
+  }
+
   AVPacket* data() { return packet_; }
   const AVPacket* data() const { return packet_; }
 
@@ -38,6 +48,14 @@ class Packet {
 class Frame {
  public:
   Frame() { frame_ = av_frame_alloc(); }
+  Frame(int format, const AVChannelLayout* ch_layout, int nb_samples) {
+    frame_ = av_frame_alloc();
+    frame_->format = format;
+    frame_->nb_samples = nb_samples;
+    av_channel_layout_copy(&frame_->ch_layout, ch_layout);
+    int ret = av_frame_get_buffer(frame_, 0);
+    if (ret < 0) std::cerr << "av_frame_get_buffer = " << ret << std::endl;
+  }
   Frame(const Frame& f) { frame_ = av_frame_clone(f.frame_); }
   Frame(Frame&& f) {
     frame_ = f.frame_;

@@ -4,6 +4,14 @@ A c++ io-stream wrapper on ffmpeg to allow easy custom pipeline processing
 
 # Concepts
 
+**Container** is a collection of Streams, e.g. mkv, mp4
+
+**Stream** is a sequence of Packets, e.g. audio stream or video stream
+
+**Packet** is encoded Frame, e.g. h264 or aac
+
+**Frame** is a chunk of samples, e.g. one video frame 1920x1080 RGB or 200 audio samples signed 16 bit 44100hz
+
 ## Mux and Demux
 
 Mux and Demux represent multimedia containers.

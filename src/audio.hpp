@@ -30,7 +30,9 @@ class AudioSample {
 template <typename SampleType>
 class AudioDecoder {
  public:
-  AudioDecoder(Decoder& decoder) : decoder_(decoder) {}
+  AudioDecoder(Decoder& decoder)
+      : decoder_(decoder),
+        planar_(av_sample_fmt_is_planar(decoder_.data()->sample_fmt)) {}
   std::optional<AudioSample<SampleType>> Read() {
     if (!frame_) {
       frame_ = decoder_.Read();
@@ -38,8 +40,15 @@ class AudioDecoder {
       if (!frame_) return std::nullopt;
     }
     AudioSample<SampleType> sample(Channels());
-    for (int i = 0; i < Channels(); ++i) {
-      sample.sample(i) = ((SampleType*)frame_->data()->data[i])[index_];
+    if (planar_) {
+      for (int i = 0; i < Channels(); ++i) {
+        sample.sample(i) = ((SampleType*)frame_->data()->data[i])[index_];
+      }
+    } else {
+      for (int i = 0; i < Channels(); ++i) {
+        sample.sample(i) =
+            ((SampleType*)frame_->data()->data[0])[index_ * Channels() + i];
+      }
     }
     ++index_;
     if (index_ >= frame_->data()->nb_samples) {
@@ -52,6 +61,7 @@ class AudioDecoder {
 
  protected:
   Decoder& decoder_;
+  bool planar_;
   int index_;
   std::optional<Frame> frame_;
 };

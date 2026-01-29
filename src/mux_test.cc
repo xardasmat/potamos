@@ -18,8 +18,8 @@ extern "C" {
 using testing::ElementsAre;
 using testing::NotNull;
 
-TEST(MuxTest, WriteBoingWav) {
-  const std::string output_file_name = "test_data/boing.wav";
+TEST(MuxTest, WriteDingDongWav) {
+  const std::string output_file_name = "test_data/ding_dong.wav";
   std::ofstream output_file(output_file_name, std::ios::out | std::ios::trunc);
 
   const AVCodec* codec = avcodec_find_encoder(AV_CODEC_ID_PCM_S16LE);
@@ -39,10 +39,35 @@ TEST(MuxTest, WriteBoingWav) {
   Encoder encoder = mux.MakeEncoder(0);
   AudioEncoder<int16_t> audio(encoder);
 
-  for (int i = 0; i < 44100 * 1; ++i) {
+  for (int i = 0; i < 44100 * 0.4; ++i) {
     AudioSample<int16_t> sample(1);
     sample.sample(0) = int16_t(sin(float(i) / 44100 * 3.14 * 2 * 1000) /
                                exp(i / 44100.0 * 10) * 20000);
+    audio.Write(sample);
+    if (auto pkt = encoder.Read()) {
+      mux.Write(std::move(*pkt));
+    }
+  }
+  for (int i = 44100 * 0.39; i < 44100 * 0.4; ++i) {
+    AudioSample<int16_t> sample(1);
+    float k = (i - 44100 * 0.39) / (44100 * 0.01);
+    sample.sample(0) =
+        int16_t((sin(float(i) / 44100 * 3.14 * 2 * 1000) /
+                 exp(i / 44100.0 * 10) * 20000) *
+                    (1.0 - k) +
+                (sin(float(i) / 44100 * 3.14 * 2 * 1000 * 4 / 5) /
+                 exp(float(i - 44100 * 0.39) / 44100.0 * 10) * 20000) *
+                    k);
+    audio.Write(sample);
+    if (auto pkt = encoder.Read()) {
+      mux.Write(std::move(*pkt));
+    }
+  }
+  for (int i = 44100 * 0.4; i < 44100 * 1.0; ++i) {
+    AudioSample<int16_t> sample(1);
+    sample.sample(0) =
+        int16_t(sin(float(i) / 44100 * 3.14 * 2 * 1000 * 4 / 5) /
+                exp(float(i - 44100 * 0.39) / 44100.0 * 10) * 20000);
     audio.Write(sample);
     if (auto pkt = encoder.Read()) {
       mux.Write(std::move(*pkt));

@@ -29,6 +29,7 @@ add_executable(
   unit_tests
   src/demux_test.cc
   src/mux_test.cc
+  src/subtitle_test.cc
 )
 
 file(COPY test_data DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

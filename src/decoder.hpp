@@ -4,6 +4,7 @@
 #include <functional>
 #include <iostream>
 #include <optional>
+#include <queue>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -41,6 +42,14 @@ class Decoder {
   }
 
   bool Write(const Packet& pkt) {
+    if (IsSubCodec()) {
+      AVSubtitle frame;
+      int got_sub;
+      int ret =
+          avcodec_decode_subtitle2(context_, &frame, &got_sub, pkt.data());
+      if (got_sub) sub_buffer_.push(frame);
+      return ret < 0 && got_sub;
+    }
     int ret = avcodec_send_packet(context_, pkt.data());
     return ret < 0;
   }
@@ -52,12 +61,25 @@ class Decoder {
     return frame;
   }
 
+  std::optional<AVSubtitle> ReadSub() {
+    if (sub_buffer_.empty()) return std::nullopt;
+    AVSubtitle sub = sub_buffer_.front();
+    sub_buffer_.pop();
+    return sub;
+  }
+
   AVCodecContext* data() { return context_; }
   const AVCodecContext* data() const { return context_; }
+
+  bool IsSubCodec() const {
+    const AVCodecDescriptor* desc = avcodec_descriptor_get(context_->codec_id);
+    return desc && (desc->props & AV_CODEC_PROP_TEXT_SUB);
+  }
 
  protected:
   const AVCodecParameters* codec_param_;
   const AVFormatContext* fmt_ctx_;
   const AVCodec* codec_;
   AVCodecContext* context_;
+  std::queue<AVSubtitle> sub_buffer_;
 };

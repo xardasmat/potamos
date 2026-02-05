@@ -12,6 +12,8 @@ A c++ io-stream wrapper on ffmpeg to allow easy custom pipeline processing
 
 **Frame** is a chunk of samples, e.g. one video frame 1920x1080 RGB or 200 audio samples signed 16 bit 44100hz
 
+**Sample**: **audio sample**, **video frame** **single subtitle** data extracted from the frame
+
 ## Mux and Demux
 
 Mux and Demux represent multimedia containers.

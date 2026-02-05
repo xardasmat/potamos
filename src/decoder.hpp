@@ -15,6 +15,8 @@ extern "C" {
 
 #include "stream_data.hpp"
 
+namespace potamos {
+
 class Decoder {
  public:
   Decoder(const AVCodecParameters* codec_param, const AVFormatContext* fmt_ctx)
@@ -83,3 +85,5 @@ class Decoder {
   AVCodecContext* context_;
   std::queue<AVSubtitle> sub_buffer_;
 };
+
+}  // namespace potamos

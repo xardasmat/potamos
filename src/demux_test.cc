@@ -15,6 +15,8 @@ extern "C" {
 #include "audio.hpp"
 #include "demux.hpp"
 
+namespace potamos {
+
 TEST(DemuxTest, BasicTest) {
   const std::string input_file_name = "test_data/orders.mp3";
   std::ifstream input_file(input_file_name);
@@ -57,3 +59,5 @@ TEST(DemuxTest, ReadBasicMp3File) {
   ASSERT_EQ(fread(&raw_float, 1, 4, pipe.get()), 0) << "some bytes at the end ";
   EXPECT_TRUE(feof(pipe.get())) << "not all samples were decoded";
 }
+
+}  // namespace potamos

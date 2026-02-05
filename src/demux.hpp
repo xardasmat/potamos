@@ -14,6 +14,8 @@ extern "C" {
 
 #include "decoder.hpp"
 
+namespace potamos {
+
 class Demux {
  public:
   Demux(std::istream& stream) : stream_(stream) {
@@ -164,3 +166,5 @@ class Demux {
 
   std::istream& stream_;
 };
+
+}  // namespace potamos

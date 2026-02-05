@@ -16,6 +16,8 @@ extern "C" {
 #include "decoder.hpp"
 #include "encoder.hpp"
 
+namespace potamos {
+
 class Subtitle {
  public:
   Subtitle() {}
@@ -71,3 +73,5 @@ class SubtitleDecoder {
   Decoder& decoder_;
   std::optional<Frame> frame_;
 };
+
+}  // namespace potamos

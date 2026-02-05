@@ -14,6 +14,8 @@ extern "C" {
 #include "encoder.hpp"
 #include "stream_data.hpp"
 
+namespace potamos {
+
 class Mux {
  public:
   Mux(std::ostream& stream, const std::string& format,
@@ -146,3 +148,5 @@ class Mux {
 
   std::ostream& stream_;
 };
+
+}  // namespace potamos

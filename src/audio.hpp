@@ -15,6 +15,8 @@ extern "C" {
 #include "decoder.hpp"
 #include "encoder.hpp"
 
+namespace potamos {
+
 template <typename SampleType>
 class AudioSample {
  public:
@@ -106,3 +108,5 @@ class AudioEncoder {
   int index_;
   std::optional<Frame> frame_;
 };
+
+}  // namespace potamos

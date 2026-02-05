@@ -15,6 +15,8 @@ extern "C" {
 #include "audio.hpp"
 #include "mux.hpp"
 
+namespace potamos {
+
 using testing::ElementsAre;
 using testing::NotNull;
 
@@ -110,3 +112,5 @@ TEST(MuxTest, WriteBoingMp3) {
     mux.Write(std::move(*pkt));
   }
 }
+
+}  // namespace potamos

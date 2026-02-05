@@ -12,6 +12,8 @@ extern "C" {
 #include <libavutil/file.h>
 }
 
+namespace potamos {
+
 class Packet {
  public:
   Packet() { packet_ = av_packet_alloc(); }
@@ -83,3 +85,5 @@ class Frame {
  private:
   AVFrame* frame_;
 };
+
+}  // namespace potamos

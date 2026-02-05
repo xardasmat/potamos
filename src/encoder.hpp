@@ -14,6 +14,8 @@ extern "C" {
 
 #include "stream_data.hpp"
 
+namespace potamos {
+
 class Encoder {
  public:
   Encoder(const AVCodecParameters* codec_param, const AVFormatContext* fmt_ctx)
@@ -77,3 +79,5 @@ class Encoder {
   AVCodecContext* context_;
   int64_t samples_written = 0;
 };
+
+}  // namespace potamos

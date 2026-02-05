@@ -15,6 +15,8 @@ extern "C" {
 #include "demux.hpp"
 #include "subtitle.hpp"
 
+namespace potamos {
+
 using testing::_;
 using testing::ElementsAre;
 using testing::FieldsAre;
@@ -46,3 +48,5 @@ TEST(DecodeSubtitle, BasicTest) {
   }
   EXPECT_EQ(index, pattern.size());
 }
+
+}  // namespace potamos

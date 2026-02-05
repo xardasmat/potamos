@@ -49,6 +49,19 @@ TEST(DemuxTest, ReadBasicMp3File) {
     ASSERT_EQ(fread(&raw_float, 1, 4, pipe.get()), 4)
         << "end of bytes at " << index;
     ASSERT_EQ(sample->sample(0), raw_float) << "samples mismatch at " << index;
+
+    // For some reason first frame has only 47 samples, but pts are set just
+    // like if all frames were full 576 samples
+    if (index < 47) {
+      ASSERT_THAT(
+          double(sample->time()),
+          testing::DoubleNear(index / 22050.0 + 0.026122448979591838, 1e-6))
+          << "time missmatch at " << index;
+    } else {
+      ASSERT_THAT(double(sample->time()),
+                  testing::DoubleNear(index / 22050.0 + 0.05011337796, 1e-6))
+          << "time missmatch at " << index;
+    }
     ++index;
   }
 

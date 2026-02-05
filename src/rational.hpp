@@ -39,7 +39,12 @@ class Rational {
   }
 
   template <typename OutputType>
-  operator OutputType() const { return OutputType(num_) / den_; }
+  operator OutputType() const {
+    return OutputType(num_) / den_;
+  }
+
+  T Num() const { return num_; }
+  T Den() const { return den_; }
 
  private:
   T num_;

@@ -120,7 +120,7 @@ class Demux : public PacketSource {
 
   Decoder GetDecoder(int index) {
     decoders_[index] = true;
-    return Decoder(fmt_ctx->streams[index]->codecpar, fmt_ctx, this, index);
+    return Decoder(fmt_ctx->streams[index], fmt_ctx, this, index);
   }
 
  private:

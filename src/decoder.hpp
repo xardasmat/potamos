@@ -13,6 +13,7 @@ extern "C" {
 #include <libavutil/file.h>
 }
 
+#include "rational.hpp"
 #include "stream_data.hpp"
 
 namespace potamos {
@@ -24,11 +25,12 @@ class PacketSource {
 
 class Decoder {
  public:
-  Decoder(const AVCodecParameters* codec_param, const AVFormatContext* fmt_ctx,
+  Decoder(const AVStream* stream, const AVFormatContext* fmt_ctx,
           PacketSource* packet_source, int stream_index)
-      : codec_param_(codec_param),
+      : stream_(stream),
+        codec_param_(stream->codecpar),
         fmt_ctx_(fmt_ctx),
-        codec_(avcodec_find_decoder(codec_param->codec_id)),
+        codec_(avcodec_find_decoder(codec_param_->codec_id)),
         context_(avcodec_alloc_context3(codec_)),
         packet_source_(packet_source),
         stream_index_(stream_index) {
@@ -100,9 +102,13 @@ class Decoder {
     return desc && (desc->props & AV_CODEC_PROP_TEXT_SUB);
   }
 
+  Rational<int64_t> TimeBase() const { return stream_->time_base; }
+  int64_t StartTime() const { return stream_->start_time; }
+
  protected:
   const AVCodecParameters* codec_param_;
   const AVFormatContext* fmt_ctx_;
+  const AVStream* stream_;
   const AVCodec* codec_;
   AVCodecContext* context_;
   std::queue<AVSubtitle> sub_buffer_;

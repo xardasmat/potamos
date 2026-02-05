@@ -10,23 +10,28 @@ extern "C" {
 #include <libavformat/avformat.h>
 #include <libavformat/avio.h>
 #include <libavutil/file.h>
+#include <libavutil/intreadwrite.h>
 }
 
 #include "decoder.hpp"
 #include "encoder.hpp"
+#include "rational.hpp"
 
 namespace potamos {
 
 template <typename SampleType>
 class AudioSample {
  public:
-  AudioSample(int channels) : samples_(channels, SampleType()) {}
+  AudioSample(int channels) : samples_(channels, SampleType()), time_(0, 1) {}
 
   SampleType& sample(int channel) { return samples_[channel]; }
   const SampleType& sample(int channel) const { return samples_[channel]; }
+  Rational<int64_t>& time() { return time_; }
+  const Rational<int64_t>& time() const { return time_; }
 
  private:
   std::vector<SampleType> samples_;
+  Rational<int64_t> time_;
 };
 
 template <typename SampleType>
@@ -44,12 +49,28 @@ class AudioDecoder {
     AudioSample<SampleType> sample(Channels());
     if (planar_) {
       for (int i = 0; i < Channels(); ++i) {
+        AVFrameSideData* sd =
+            av_frame_get_side_data(frame_->data(), AV_FRAME_DATA_SKIP_SAMPLES);
+        int64_t skip_at_start = 0;
+
+        if (sd && sd->size >= 4) {
+          // Pierwsze 4 bajty to liczba próbek do pominięcia na początku ramki
+          skip_at_start = AV_RL32(sd->data);
+        }
+
         sample.sample(i) = ((SampleType*)frame_->data()->data[i])[index_];
+        sample.time() =
+            Rational<int64_t>(frame_->data()->pts, 1) * decoder_.TimeBase() +
+            Rational<int64_t>(index_ + skip_at_start,
+                              frame_->data()->sample_rate);
       }
     } else {
       for (int i = 0; i < Channels(); ++i) {
         sample.sample(i) =
             ((SampleType*)frame_->data()->data[0])[index_ * Channels() + i];
+        sample.time() =
+            Rational<int64_t>(frame_->data()->pts, 1) * decoder_.TimeBase() +
+            Rational<int64_t>(index_, frame_->data()->sample_rate);
       }
     }
     ++index_;
@@ -64,7 +85,7 @@ class AudioDecoder {
  protected:
   Decoder& decoder_;
   bool planar_;
-  int index_;
+  int64_t index_;
   std::optional<Frame> frame_;
 };
 

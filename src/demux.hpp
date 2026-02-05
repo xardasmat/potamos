@@ -16,7 +16,7 @@ extern "C" {
 
 namespace potamos {
 
-class Demux {
+class Demux : public PacketSource {
  public:
   Demux(std::istream& stream) : stream_(stream) {
     fmt_ctx = avformat_alloc_context();
@@ -54,6 +54,9 @@ class Demux {
     }
 
     // av_dump_format(fmt_ctx, 0, "std::ifstream", 0);
+
+    packets_queue_.resize(StreamsCount());
+    decoders_.resize(StreamsCount());
   }
 
   ~Demux() {
@@ -100,8 +103,24 @@ class Demux {
       return packet;
   }
 
-  Decoder GetDecoder(int index) const {
-    return Decoder(fmt_ctx->streams[index]->codecpar, fmt_ctx);
+  std::optional<Packet> ReadNextPacket(const int stream_index) override {
+    if (!packets_queue_[stream_index].empty()) {
+      auto packet = packets_queue_[stream_index].front();
+      packets_queue_[stream_index].pop();
+      return packet;
+    }
+    while (true) {
+      auto packet = read();
+      if (!packet) return std::nullopt;
+      if (packet->StreamIndex() == stream_index) return packet;
+      if (decoders_[packet->StreamIndex()])
+        packets_queue_[packet->StreamIndex()].push(std::move(*packet));
+    }
+  }
+
+  Decoder GetDecoder(int index) {
+    decoders_[index] = true;
+    return Decoder(fmt_ctx->streams[index]->codecpar, fmt_ctx, this, index);
   }
 
  private:
@@ -163,6 +182,8 @@ class Demux {
   AVFormatContext* fmt_ctx = NULL;
   AVIOContext* avio_ctx = NULL;
   uint8_t* avio_ctx_buffer = NULL;
+  std::vector<std::queue<Packet>> packets_queue_;
+  std::vector<bool> decoders_;
 
   std::istream& stream_;
 };

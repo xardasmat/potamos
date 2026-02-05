@@ -17,13 +17,21 @@ extern "C" {
 
 namespace potamos {
 
+class PacketSource {
+ public:
+  virtual std::optional<Packet> ReadNextPacket(const int stream_index) = 0;
+};
+
 class Decoder {
  public:
-  Decoder(const AVCodecParameters* codec_param, const AVFormatContext* fmt_ctx)
+  Decoder(const AVCodecParameters* codec_param, const AVFormatContext* fmt_ctx,
+          PacketSource* packet_source, int stream_index)
       : codec_param_(codec_param),
         fmt_ctx_(fmt_ctx),
         codec_(avcodec_find_decoder(codec_param->codec_id)),
-        context_(avcodec_alloc_context3(codec_)) {
+        context_(avcodec_alloc_context3(codec_)),
+        packet_source_(packet_source),
+        stream_index_(stream_index) {
     int ret0 = avcodec_parameters_to_context(context_, codec_param_);
     if (ret0 < 0)
       std::cerr << "avcodec_parameters_to_context =" << ret0 << std::endl;
@@ -32,7 +40,11 @@ class Decoder {
   }
 
   Decoder(const Decoder& d) = delete;
-  Decoder(Decoder&& d) : codec_(d.codec_), context_(d.context_) {
+  Decoder(Decoder&& d)
+      : codec_(d.codec_),
+        context_(d.context_),
+        packet_source_(d.packet_source_),
+        stream_index_(d.stream_index_) {
     d.context_ = nullptr;
   }
 
@@ -58,8 +70,18 @@ class Decoder {
 
   std::optional<Frame> Read() {
     Frame frame;
-    int ret = avcodec_receive_frame(context_, frame.data());
-    if (ret < 0) return std::nullopt;
+    int ret = AVERROR(EAGAIN);
+    while (ret == AVERROR(EAGAIN)) {
+      ret = avcodec_receive_frame(context_, frame.data());
+      if (ret == AVERROR(EAGAIN)) {
+        auto packet = packet_source_->ReadNextPacket(stream_index_);
+        if (!packet) return std::nullopt;
+        Write(*packet);  // TODO handle error
+      } else if (ret == AVERROR_EOF)
+        return std::nullopt;
+      else if (ret < 0)
+        return std::nullopt;  // TODO better error handling
+    }
     return frame;
   }
 
@@ -84,6 +106,8 @@ class Decoder {
   const AVCodec* codec_;
   AVCodecContext* context_;
   std::queue<AVSubtitle> sub_buffer_;
+  PacketSource* packet_source_;
+  const int stream_index_;
 };
 
 }  // namespace potamos

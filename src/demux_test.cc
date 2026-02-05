@@ -45,16 +45,12 @@ TEST(DemuxTest, ReadBasicMp3File) {
 
   int index = 0;
   float raw_float = 1337;
-  // while (auto packet = demux.read()) {
-  //   if (packet->StreamIndex() != 0) continue;
-  //   ASSERT_FALSE(codec.Write(*packet));
   while (auto sample = audio_codec.Read()) {
     ASSERT_EQ(fread(&raw_float, 1, 4, pipe.get()), 4)
         << "end of bytes at " << index;
     ASSERT_EQ(sample->sample(0), raw_float) << "samples mismatch at " << index;
     ++index;
   }
-  // }
 
   ASSERT_EQ(fread(&raw_float, 1, 4, pipe.get()), 0) << "some bytes at the end ";
   EXPECT_TRUE(feof(pipe.get())) << "not all samples were decoded";

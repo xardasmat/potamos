@@ -38,7 +38,8 @@ class Rational {
     return a.den_ == b.den_ && a.num_ == b.num_;
   }
 
-  operator double() const { return double(num_) / den_; }
+  template <typename OutputType>
+  operator OutputType() const { return OutputType(num_) / den_; }
 
  private:
   T num_;

@@ -13,6 +13,11 @@ TEST(RationalTest, RationalToDouble) {
   EXPECT_EQ(double(a), 1.0 / 3.0);
 }
 
+TEST(RationalTest, RationalToInt) {
+  Rational<int> a(15, 2);
+  EXPECT_EQ(int(a), 15/2);
+}
+
 TEST(RationalTest, FromAVRational) {
   Rational<int> a(av_make_q(1, 3));
   EXPECT_EQ(a, Rational(1, 3));

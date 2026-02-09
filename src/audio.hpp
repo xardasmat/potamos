@@ -41,10 +41,29 @@ class AudioDecoder {
       : decoder_(decoder),
         planar_(av_sample_fmt_is_planar(decoder_.data()->sample_fmt)) {}
   std::optional<AudioSample<SampleType>> Read() {
-    if (!frame_) {
+    while (!frame_) {
       frame_ = decoder_.Read();
-      index_ = 0;
       if (!frame_) return std::nullopt;
+      if (frame_->data()->flags & AV_FRAME_FLAG_DISCARD) {
+        frame_ = std::nullopt;
+        continue;
+      }
+      size_ = frame_->data()->nb_samples;
+      int64_t skip_ = 0;
+      AVFrameSideData* sd =
+          av_frame_get_side_data(frame_->data(), AV_FRAME_DATA_SKIP_SAMPLES);
+      if (sd) {
+        uint32_t* skip = (uint32_t*)sd->data;
+        skip_ += skip[0];
+        size_ -= skip[1];
+      }
+      while (skip_ > frame_->data()->nb_samples) {
+        skip_ -= frame_->data()->nb_samples;
+        frame_ = decoder_.Read();
+        if (!frame_) return std::nullopt;
+        size_ = frame_->data()->nb_samples;
+      }
+      index_ = skip_;
     }
     AudioSample<SampleType> sample(Channels());
     if (planar_) {
@@ -64,7 +83,7 @@ class AudioDecoder {
       }
     }
     ++index_;
-    if (index_ >= frame_->data()->nb_samples) {
+    if (index_ >= size_) {
       frame_ = std::nullopt;
     }
     return sample;
@@ -76,6 +95,7 @@ class AudioDecoder {
   Decoder& decoder_;
   bool planar_;
   int64_t index_;
+  int64_t size_;
   std::optional<Frame> frame_;
 };
 

@@ -35,6 +35,7 @@ class Decoder {
         packet_source_(packet_source),
         stream_index_(stream_index) {
     int ret0 = avcodec_parameters_to_context(context_, codec_param_);
+    context_->flags2 |= AV_CODEC_FLAG2_SKIP_MANUAL;
     if (ret0 < 0)
       std::cerr << "avcodec_parameters_to_context =" << ret0 << std::endl;
     int ret = avcodec_open2(context_, codec_, nullptr);
@@ -66,13 +67,6 @@ class Decoder {
       if (got_sub) sub_buffer_.push(frame);
       return ret < 0 && got_sub;
     }
-    // TODO handle skipeed initial samples
-    // uint8_t* sd =
-    //     av_packet_get_side_data(pkt.data(), AV_PKT_DATA_SKIP_SAMPLES, nullptr);
-    // if (sd) {
-    //   uint32_t skip_start =
-    //       uint32_t(sd[0] | sd[1] << 8 | sd[2] << 16 | sd[3] << 24);
-    // }
     int ret = avcodec_send_packet(context_, pkt.data());
     return ret < 0;
   }
@@ -112,12 +106,11 @@ class Decoder {
   Rational<int64_t> TimeBase() const { return stream_->time_base; }
   int64_t StartTime() const { return stream_->start_time; }
 
-  const AVStream* stream_;
-
  protected:
   const AVCodecParameters* codec_param_;
   const AVFormatContext* fmt_ctx_;
   const AVCodec* codec_;
+  const AVStream* stream_;
   AVCodecContext* context_;
   std::queue<AVSubtitle> sub_buffer_;
   PacketSource* packet_source_;

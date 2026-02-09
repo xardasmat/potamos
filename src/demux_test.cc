@@ -45,6 +45,7 @@ TEST(DemuxTest, ReadBasicMp3File) {
 
   int index = 0;
   float raw_float = 1337;
+  const float start_time_seconds = 0.050113;
   while (auto sample = audio_codec.Read()) {
     ASSERT_EQ(fread(&raw_float, 1, 4, pipe.get()), 4)
         << "end of bytes at " << index;
@@ -59,7 +60,7 @@ TEST(DemuxTest, ReadBasicMp3File) {
           << "time missmatch at " << index;
     } else {
       ASSERT_THAT(double(sample->time()),
-                  testing::DoubleNear(index / 22050.0 + 0.05011337796, 1e-6))
+                  testing::DoubleNear(index / 22050.0 + start_time_seconds, 1e-6))
           << "time missmatch at " << index;
     }
     ++index;

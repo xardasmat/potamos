@@ -28,7 +28,7 @@ TEST(DemuxTest, BasicTest) {
 TEST(DemuxTest, ReadBasicMp3File) {
   const std::string input_file_name = "test_data/orders.mp3";
   static const std::string cmd =
-      "ffmpeg -i test_data/orders.mp3 -f f32le -y - 2>/dev/null";
+      "ffmpeg -i test_data/orders.mp3 -v quiet -f f32le -y -";
 
   std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"),
                                                 pclose);

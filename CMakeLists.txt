@@ -31,6 +31,7 @@ add_executable(
   src/mux_test.cc
   src/subtitle_test.cc
   src/rational_test.cc
+  src/ipstream_test.cc
 )
 
 file(COPY test_data DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

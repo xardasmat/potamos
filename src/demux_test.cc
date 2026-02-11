@@ -103,7 +103,6 @@ TEST(DemuxTest, ReadFlacFile) {
   EXPECT_TRUE(feof(pipe.get())) << "not all samples were decoded";
 }
 
-
 TEST(DemuxTest, ReadAacFile) {
   const std::string input_file_name = "test_data/orders.aac";
   static const std::string convert =
@@ -143,6 +142,45 @@ TEST(DemuxTest, ReadAacFile) {
 
   ASSERT_EQ(fread(&raw_sample, 1, 4, pipe.get()), 0)
       << "some bytes at the end ";
+  EXPECT_TRUE(feof(pipe.get())) << "not all samples were decoded";
+}
+
+TEST(DemuxTest, ReadStereoMp3File) {
+  const std::string input_file_name = "test_data/kirov.mp3";
+  static const std::string cmd =
+      "ffmpeg -i test_data/kirov.mp3 -v quiet -f f32le -y -";
+
+  std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"),
+                                                pclose);
+
+  std::ifstream input_file(input_file_name);
+  Demux demux(input_file);
+
+  int got_frame_ptr;
+  auto codec = demux.GetDecoder(0);
+  AudioDecoder<float> audio_codec(codec);
+
+  ASSERT_FALSE(feof(pipe.get()));
+  ASSERT_FALSE(ferror(pipe.get()));
+
+  int index = 0;
+  float raw_float[2] = {1, 2};
+  const float start_time_seconds = 0.025057;
+  while (auto sample = audio_codec.Read()) {
+    ASSERT_EQ(fread(raw_float, 1, 8, pipe.get()), 8)
+        << "end of bytes at " << index;
+    ASSERT_EQ(sample->sample(0), raw_float[0])
+        << "samples mismatch at " << index;
+    ASSERT_EQ(sample->sample(1), raw_float[1])
+        << "samples mismatch at " << index;
+
+    ASSERT_THAT(double(sample->time()),
+                testing::DoubleNear(index / 44100.0 + start_time_seconds, 1e-6))
+        << "time missmatch at " << index;
+    ++index;
+  }
+
+  ASSERT_EQ(fread(&raw_float, 1, 4, pipe.get()), 0) << "some bytes at the end ";
   EXPECT_TRUE(feof(pipe.get())) << "not all samples were decoded";
 }
 

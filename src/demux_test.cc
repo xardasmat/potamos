@@ -103,4 +103,47 @@ TEST(DemuxTest, ReadFlacFile) {
   EXPECT_TRUE(feof(pipe.get())) << "not all samples were decoded";
 }
 
+
+TEST(DemuxTest, ReadAacFile) {
+  const std::string input_file_name = "test_data/orders.aac";
+  static const std::string convert =
+      "ffmpeg -v quiet -i test_data/orders.mp3 -y test_data/orders.aac";
+  std::system(convert.c_str());
+  static const std::string cmd =
+      "ffmpeg -i test_data/orders.aac -v quiet -f f32le -y -";
+
+  std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"),
+                                                pclose);
+
+  std::ifstream input_file(input_file_name);
+  Demux demux(input_file);
+
+  int got_frame_ptr;
+  auto codec = demux.GetDecoder(0);
+  AudioDecoder<float> audio_codec(codec);
+
+  ASSERT_FALSE(feof(pipe.get()));
+  ASSERT_FALSE(ferror(pipe.get()));
+
+  int index = 0;
+  float raw_sample = 1337;
+  const float start_time_seconds = 0.0;
+  while (auto sample = audio_codec.Read()) {
+    ASSERT_EQ(fread(&raw_sample, 1, 4, pipe.get()), 4)
+        << "end of bytes at " << index;
+    ASSERT_EQ(sample->sample(0), raw_sample)
+        << "samples mismatch at " << index << " : " << std::hex
+        << sample->sample(0) << " vs " << raw_sample;
+
+    ASSERT_THAT(double(sample->time()),
+                testing::DoubleNear(index / 22050.0 + start_time_seconds, 1e-6))
+        << "time missmatch at " << index;
+    ++index;
+  }
+
+  ASSERT_EQ(fread(&raw_sample, 1, 4, pipe.get()), 0)
+      << "some bytes at the end ";
+  EXPECT_TRUE(feof(pipe.get())) << "not all samples were decoded";
+}
+
 }  // namespace potamos

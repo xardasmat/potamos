@@ -62,7 +62,19 @@ class Decoder {
       int got_sub;
       int ret =
           avcodec_decode_subtitle2(context_, &frame, &got_sub, pkt.data());
-      if (got_sub) sub_buffer_.push(frame);
+      if (got_sub) {
+        if (frame.pts == AV_NOPTS_VALUE) {
+          // Apparenlty avcodec_decode_subtitle2 fails to do it's job...
+          frame.pts =
+              av_rescale_q(pkt.data()->pts, stream_->time_base, AV_TIME_BASE_Q);
+        }
+        if (frame.end_display_time == 0) {
+          // Apparenlty avcodec_decode_subtitle2 fails to do it's job...
+          frame.end_display_time = av_rescale_q(
+              pkt.data()->duration, stream_->time_base, av_make_q(1, 1000));
+        }
+        sub_buffer_.push(frame);
+      }
       return ret < 0 && got_sub;
     }
     int ret = avcodec_send_packet(context_, pkt.data());

@@ -19,6 +19,12 @@ class Rational {
     auto den = std::lcm(a.den_, b.den_);
     return Rational(a.num_ * (den / a.den_) + b.num_ * (den / b.den_), den);
   }
+  Rational& operator+=(Rational b) {
+    const Rational& a = *this;
+    auto den = std::lcm(a.den_, b.den_);
+    return *this =
+               Rational(a.num_ * (den / a.den_) + b.num_ * (den / b.den_), den);
+  }
   Rational operator-(Rational b) const {
     const Rational& a = *this;
     auto den = std::lcm(a.den_, b.den_);
@@ -31,6 +37,12 @@ class Rational {
   Rational operator/(Rational b) const {
     const Rational& a = *this;
     return Rational(a.num_ * b.den_, a.den_ * b.num_);
+  }
+
+  Rational& operator=(Rational b) {
+    num_ = b.num_;
+    den_ = b.den_;
+    return *this;
   }
 
   bool operator==(Rational b) const {

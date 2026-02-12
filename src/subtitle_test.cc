@@ -34,19 +34,26 @@ TEST(DecodeSubtitle, BasicTest) {
   EXPECT_THAT(subtitle_decoder.data()->codec_descriptor->name,
               testing::StrEq("subrip"));
 
-  std::vector<std::string> pattern = {"- Awaiting orders!",
-                                      "[Sound of silence]"};
+  std::vector<std::string> sub_pattern = {"- Awaiting orders!",
+                                          "[Sound of silence]"};
+  std::vector<double> time_start_pattern = {0.05, 0.7};
+  std::vector<double> time_end_pattern = {0.7, 0.9};
 
   int index = 0;
   while (auto packet = demux.read()) {
     ASSERT_FALSE(subtitle_decoder.Write(std::move(*packet)));
     while (auto subtitle = subtitle_codec.Read()) {
-      ASSERT_THAT(index, testing::Le(pattern.size()));
-      EXPECT_EQ(subtitle->text, pattern[index]) << "failed at index =" << index;
+      ASSERT_THAT(index, testing::Le(sub_pattern.size()));
+      EXPECT_EQ(subtitle->text, sub_pattern[index])
+          << "failed at index =" << index;
+      EXPECT_THAT(double(subtitle->begin_timestamp),
+                  testing::DoubleNear(time_start_pattern[index], 1e-6));
+      EXPECT_THAT(double(subtitle->end_timestamp),
+                  testing::DoubleNear(time_end_pattern[index], 1e-6));
       ++index;
     }
   }
-  EXPECT_EQ(index, pattern.size());
+  EXPECT_EQ(index, sub_pattern.size());
 }
 
 }  // namespace potamos

@@ -20,7 +20,7 @@ namespace potamos {
 
 class Subtitle {
  public:
-  Subtitle() {}
+  Subtitle() : begin_timestamp(0, 1), end_timestamp(0, 1) {}
 
   static std::string FromAss(const std::string& ass) {
     std::smatch ass_match;
@@ -34,8 +34,8 @@ class Subtitle {
 
  public:
   std::string text;
-  int64_t begin_timestamp;
-  int64_t end_timestamp;
+  Rational<int64_t> begin_timestamp;
+  Rational<int64_t> end_timestamp;
 };
 
 class SubtitleDecoder {
@@ -64,8 +64,13 @@ class SubtitleDecoder {
         return std::nullopt;
     }
 
-    subtitle.begin_timestamp = frame->start_display_time + frame->pts;
-    subtitle.end_timestamp = frame->end_display_time + frame->pts;
+    subtitle.begin_timestamp =
+        Rational<int64_t>(frame->start_display_time, 1000);
+    subtitle.end_timestamp = Rational<int64_t>(frame->end_display_time, 1000);
+    if (frame->pts != AV_NOPTS_VALUE) {
+      subtitle.begin_timestamp += Rational<int64_t>(frame->pts, AV_TIME_BASE);
+      subtitle.end_timestamp += Rational<int64_t>(frame->pts, AV_TIME_BASE);
+    }
     return subtitle;
   }
 

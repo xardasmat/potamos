@@ -64,12 +64,12 @@ class Decoder {
           avcodec_decode_subtitle2(context_, &frame, &got_sub, pkt.data());
       if (got_sub) {
         if (frame.pts == AV_NOPTS_VALUE) {
-          // Apparenlty avcodec_decode_subtitle2 fails to do it's job...
+          // Apparenlty avcodec_decode_subtitle2 fails to do its job...
           frame.pts =
               av_rescale_q(pkt.data()->pts, stream_->time_base, AV_TIME_BASE_Q);
         }
         if (frame.end_display_time == 0) {
-          // Apparenlty avcodec_decode_subtitle2 fails to do it's job...
+          // Apparenlty avcodec_decode_subtitle2 fails to do its job...
           frame.end_display_time = av_rescale_q(
               pkt.data()->duration, stream_->time_base, av_make_q(1, 1000));
         }

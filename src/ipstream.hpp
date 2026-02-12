@@ -49,4 +49,5 @@ class iPipeStream : public std::istream {
  private:
   FileBuffer buffer_;
 };
+
 }  // namespace potamos

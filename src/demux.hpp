@@ -19,26 +19,21 @@ namespace potamos {
 class Demux : public PacketSource {
  public:
   Demux(std::istream& stream) : stream_(stream) {
-    fmt_ctx = avformat_alloc_context();
-    // if (!()) {
-    //     ret = AVERROR(ENOMEM);
-    //     goto end;
-    // }
+    fmt_ctx_ = avformat_alloc_context();
+    // TODO handle an error
 
     avio_ctx_buffer = (uint8_t*)av_malloc(avio_ctx_buffer_size);
-    // if (!avio_ctx_buffer) {
-    //     ret = AVERROR(ENOMEM);
-    //     goto end;
-    // }
-    avio_ctx = avio_alloc_context(avio_ctx_buffer, avio_ctx_buffer_size, 0,
-                                  this, &Demux::Read, nullptr, &Demux::Seek);
-    if (!avio_ctx) {
+    // TODO handle an error
+
+    avio_ctx_ = avio_alloc_context(avio_ctx_buffer, avio_ctx_buffer_size, 0,
+                                   this, &Demux::Read, nullptr, &Demux::Seek);
+    if (!avio_ctx_) {
       std::clog << " ?? " << std::endl;
     }
 
-    fmt_ctx->pb = avio_ctx;
+    fmt_ctx_->pb = avio_ctx_;
 
-    int ret = avformat_open_input(&fmt_ctx, NULL, NULL, NULL);
+    int ret = avformat_open_input(&fmt_ctx_, NULL, NULL, NULL);
     if (ret < 0) {
       std::string error(av_make_error_string(
           (char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE),
@@ -47,25 +42,25 @@ class Demux : public PacketSource {
       return;
     }
 
-    ret = avformat_find_stream_info(fmt_ctx, NULL);
+    ret = avformat_find_stream_info(fmt_ctx_, NULL);
     if (ret < 0) {
       std::clog << "Could not find stream information" << std::endl;
       return;
     }
 
-    // av_dump_format(fmt_ctx, 0, "std::ifstream", 0);
+    // av_dump_format(fmt_ctx_, 0, "std::ifstream", 0);
 
     packets_queue_.resize(StreamsCount());
     decoders_.resize(StreamsCount());
   }
 
   ~Demux() {
-    avformat_close_input(&fmt_ctx);
-    if (avio_ctx) av_freep(&avio_ctx->buffer);
-    avio_context_free(&avio_ctx);
+    avformat_close_input(&fmt_ctx_);
+    if (avio_ctx_) av_freep(&avio_ctx_->buffer);
+    avio_context_free(&avio_ctx_);
   }
 
-  int StreamsCount() const { return fmt_ctx->nb_streams; }
+  int StreamsCount() const { return fmt_ctx_->nb_streams; }
 
   std::string CodecType(AVMediaType type) const {
     switch (type) {
@@ -88,12 +83,12 @@ class Demux : public PacketSource {
   }
 
   std::string Type(int n) const {
-    return CodecType(fmt_ctx->streams[n]->codecpar->codec_type);
+    return CodecType(fmt_ctx_->streams[n]->codecpar->codec_type);
   }
 
   std::optional<Packet> read() {
     Packet packet;
-    int ret = av_read_frame(fmt_ctx, packet.data());
+    int ret = av_read_frame(fmt_ctx_, packet.data());
     if (ret == AVERROR_EOF)
       return std::nullopt;
     else if (ret < 0) {
@@ -120,7 +115,7 @@ class Demux : public PacketSource {
 
   Decoder GetDecoder(int index) {
     decoders_[index] = true;
-    return Decoder(fmt_ctx->streams[index], fmt_ctx, this, index);
+    return Decoder(fmt_ctx_->streams[index], this);
   }
 
  private:
@@ -179,8 +174,8 @@ class Demux : public PacketSource {
   }
 
   size_t avio_ctx_buffer_size = 4096;
-  AVFormatContext* fmt_ctx = NULL;
-  AVIOContext* avio_ctx = NULL;
+  AVFormatContext* fmt_ctx_ = NULL;
+  AVIOContext* avio_ctx_ = NULL;
   uint8_t* avio_ctx_buffer = NULL;
   std::vector<std::queue<Packet>> packets_queue_;
   std::vector<bool> decoders_;

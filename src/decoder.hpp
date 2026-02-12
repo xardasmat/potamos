@@ -25,15 +25,12 @@ class PacketSource {
 
 class Decoder {
  public:
-  Decoder(const AVStream* stream, const AVFormatContext* fmt_ctx,
-          PacketSource* packet_source, int stream_index)
+  Decoder(const AVStream* stream, PacketSource* packet_source)
       : stream_(stream),
         codec_param_(stream->codecpar),
-        fmt_ctx_(fmt_ctx),
         codec_(avcodec_find_decoder(codec_param_->codec_id)),
         context_(avcodec_alloc_context3(codec_)),
-        packet_source_(packet_source),
-        stream_index_(stream_index) {
+        packet_source_(packet_source) {
     int ret0 = avcodec_parameters_to_context(context_, codec_param_);
     context_->flags2 |= AV_CODEC_FLAG2_SKIP_MANUAL;
     if (ret0 < 0)
@@ -44,10 +41,11 @@ class Decoder {
 
   Decoder(const Decoder& d) = delete;
   Decoder(Decoder&& d)
-      : codec_(d.codec_),
+      : stream_(d.stream_),
+        codec_param_(d.codec_param_),
+        codec_(d.codec_),
         context_(d.context_),
-        packet_source_(d.packet_source_),
-        stream_index_(d.stream_index_) {
+        packet_source_(d.packet_source_) {
     d.context_ = nullptr;
   }
 
@@ -59,7 +57,7 @@ class Decoder {
   }
 
   bool Write(const Packet& pkt) {
-    if (IsSubCodec()) {
+    if (Type() == AVMediaType::AVMEDIA_TYPE_SUBTITLE) {
       AVSubtitle frame;
       int got_sub;
       int ret =
@@ -77,7 +75,7 @@ class Decoder {
     while (ret == AVERROR(EAGAIN)) {
       ret = avcodec_receive_frame(context_, frame.data());
       if (ret == AVERROR(EAGAIN)) {
-        auto packet = packet_source_->ReadNextPacket(stream_index_);
+        auto packet = packet_source_->ReadNextPacket(stream_->index);
         if (!packet) return std::nullopt;
         Write(*packet);  // TODO handle error
       } else if (ret == AVERROR_EOF)
@@ -98,23 +96,18 @@ class Decoder {
   AVCodecContext* data() { return context_; }
   const AVCodecContext* data() const { return context_; }
 
-  bool IsSubCodec() const {
-    const AVCodecDescriptor* desc = avcodec_descriptor_get(context_->codec_id);
-    return desc && (desc->props & AV_CODEC_PROP_TEXT_SUB);
-  }
+  AVMediaType Type() const { return stream_->codecpar->codec_type; }
 
   Rational<int64_t> TimeBase() const { return stream_->time_base; }
   int64_t StartTime() const { return stream_->start_time; }
 
  protected:
   const AVCodecParameters* codec_param_;
-  const AVFormatContext* fmt_ctx_;
   const AVCodec* codec_;
   const AVStream* stream_;
   AVCodecContext* context_;
   std::queue<AVSubtitle> sub_buffer_;
   PacketSource* packet_source_;
-  const int stream_index_;
 };
 
 }  // namespace potamos

@@ -102,20 +102,31 @@ class AudioDecoder {
 template <typename SampleType>
 class AudioEncoder {
  public:
-  AudioEncoder(Encoder& encoder) : encoder_(encoder) {}
+  AudioEncoder(Encoder& encoder)
+      : encoder_(encoder),
+        planar_(av_sample_fmt_is_planar(encoder_.data()->sample_fmt)) {
+    encoder_.data()->time_base = av_make_q(1, encoder_.data()->sample_rate);
+  }
 
   void Write(const AudioSample<SampleType>& sample) {
     if (!frame_) {
       frame_ = encoder_.MakeFrame();
       index_ = 0;
     }
-    for (int i = 0; i < Channels(); ++i) {
-      ((SampleType*)frame_->data()->data[i])[index_] = sample.sample(i);
+    if (planar_) {
+      for (int i = 0; i < Channels(); ++i) {
+        ((SampleType*)frame_->data()->data[i])[index_] = sample.sample(i);
+      }
+    } else {
+      for (int i = 0; i < Channels(); ++i) {
+        ((SampleType*)frame_->data()->data[0])[index_ * Channels() + i] =
+            sample.sample(i);
+      }
     }
+
     ++index_;
     if (index_ >= frame_->data()->nb_samples) {
-      encoder_.Write(*frame_);
-      frame_ = std::nullopt;
+      WriteCurrentFrame();
     }
   }
 
@@ -125,9 +136,7 @@ class AudioEncoder {
       if (ret < 0)
         std::cerr << "Flushing encoder failed = " << ret << std::endl;
     }
-    frame_->data()->nb_samples = index_;
-    encoder_.Write(*frame_);
-    frame_ = std::nullopt;
+    WriteCurrentFrame();
     int ret = encoder_.Flush();
     if (ret < 0) std::cerr << "Flushing encoder failed = " << ret << std::endl;
   }
@@ -135,9 +144,19 @@ class AudioEncoder {
   int Channels() const { return encoder_.data()->ch_layout.nb_channels; }
 
  protected:
+  void WriteCurrentFrame() {
+    frame_->data()->nb_samples = std::min(index_, frame_->data()->nb_samples);
+    frame_->data()->pts = samples_written_;
+    encoder_.Write(*frame_);
+    frame_ = std::nullopt;
+    samples_written_ += index_;
+  }
+
   Encoder& encoder_;
   int index_;
   std::optional<Frame> frame_;
+  bool planar_;
+  int64_t samples_written_ = 0;
 };
 
 }  // namespace potamos

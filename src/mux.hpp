@@ -16,7 +16,7 @@ extern "C" {
 
 namespace potamos {
 
-class Mux {
+class Mux : public PacketDestination {
  public:
   Mux(std::ostream& stream, const std::string& format,
       const std::vector<const AVCodecParameters*>& streams)
@@ -82,8 +82,12 @@ class Mux {
     return ret < 0;
   }
 
-  Encoder MakeEncoder(int index) const {
-    return Encoder(fmt_ctx->streams[index]->codecpar, fmt_ctx);
+  Encoder GetEncoder(int index) {
+    return Encoder(fmt_ctx->streams[index], this);
+  }
+
+  bool WriteNextPacket(Packet packet, const int stream_index) override {
+    return Write(std::move(packet));
   }
 
  private:

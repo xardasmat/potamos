@@ -16,22 +16,33 @@ extern "C" {
 
 namespace potamos {
 
+class PacketDestination {
+ public:
+  virtual bool WriteNextPacket(Packet packet, const int stream_index) = 0;
+};
+
 class Encoder {
  public:
-  Encoder(const AVCodecParameters* codec_param, const AVFormatContext* fmt_ctx)
-      : codec_param_(codec_param),
-        fmt_ctx_(fmt_ctx),
-        codec_(avcodec_find_encoder(codec_param->codec_id)),
-        context_(avcodec_alloc_context3(codec_)) {
-    int ret0 = avcodec_parameters_to_context(context_, codec_param_);
+  Encoder(const AVStream* stream, PacketDestination* packet_dst)
+      : stream_(stream), packet_dst_(packet_dst) {
+    const AVCodec* codec = avcodec_find_encoder(stream->codecpar->codec_id);
+    context_ = avcodec_alloc_context3(codec);
+    if (context_ == nullptr) {
+      std::cerr << "avcodec_alloc_context3 failed to allocate codec context"
+                << std::endl;
+    }
+    int ret0 = avcodec_parameters_to_context(context_, stream->codecpar);
     if (ret0 < 0)
       std::cerr << "avcodec_parameters_to_context =" << ret0 << std::endl;
-    int ret = avcodec_open2(context_, codec_, nullptr);
+    int ret = avcodec_open2(context_, codec, nullptr);
     if (ret < 0) std::cerr << "avcodec_open2 =" << ret << std::endl;
   }
 
   Encoder(const Encoder& e) = delete;
-  Encoder(Encoder&& e) : codec_(e.codec_), context_(e.context_) {
+  Encoder(Encoder&& e)
+      : stream_(e.stream_), packet_dst_(e.packet_dst_), context_(e.context_) {
+    e.stream_ = nullptr;
+    e.packet_dst_ = nullptr;
     e.context_ = nullptr;
   }
 
@@ -44,40 +55,42 @@ class Encoder {
 
   bool Write(const Frame& frame) {
     int ret = avcodec_send_frame(context_, frame.data());
-    return ret < 0;
+    if (ret < 0) return false;
+    while (auto packet = Read()) {
+      packet_dst_->WriteNextPacket(std::move(*packet), stream_->index);
+    }
+    return true;
   }
 
   bool Flush() {
     int ret = avcodec_send_frame(context_, nullptr);
-    return ret < 0;
+    if (ret < 0) return false;
+    while (auto packet = Read()) {
+      packet_dst_->WriteNextPacket(std::move(*packet), stream_->index);
+    }
+    return true;
   }
 
   std::optional<Packet> Read() {
     Packet packet;
     int ret = avcodec_receive_packet(context_, packet.data());
     if (ret < 0) return std::nullopt;
-    packet.data()->pts = samples_written;
-    packet.data()->dts = samples_written;
-    samples_written += packet.data()->duration;
-    av_packet_rescale_ts(packet.data(),
-                         (AVRational){1, codec_param_->sample_rate},
-                         context_->time_base);
     return packet;
   }
 
   Frame MakeFrame() const {
-    return Frame(codec_param_->format, &codec_param_->ch_layout, 1152);
+    // TODO: move this logic to Audio encoder as it is audio specific code.
+    return Frame(stream_->codecpar->format, &stream_->codecpar->ch_layout,
+                 context_->frame_size > 0 ? context_->frame_size : 1024);
   }
 
   AVCodecContext* data() { return context_; }
   const AVCodecContext* data() const { return context_; }
 
  protected:
-  const AVCodecParameters* codec_param_;
-  const AVFormatContext* fmt_ctx_;
-  const AVCodec* codec_;
+  const AVStream* stream_;
+  PacketDestination* packet_dst_;
   AVCodecContext* context_;
-  int64_t samples_written = 0;
 };
 
 }  // namespace potamos

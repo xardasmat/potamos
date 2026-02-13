@@ -38,7 +38,7 @@ TEST(MuxTest, WriteDingDongWav) {
   params->block_align = 2;
 
   Mux mux(output_file, "wav", {params});
-  Encoder encoder = mux.MakeEncoder(0);
+  Encoder encoder = mux.GetEncoder(0);
   AudioEncoder<int16_t> audio(encoder);
 
   for (int i = 0; i < 44100 * 0.4; ++i) {
@@ -46,9 +46,6 @@ TEST(MuxTest, WriteDingDongWav) {
     sample.sample(0) = int16_t(sin(float(i) / 44100 * 3.14 * 2 * 1000) /
                                exp(i / 44100.0 * 10) * 20000);
     audio.Write(sample);
-    if (auto pkt = encoder.Read()) {
-      mux.Write(std::move(*pkt));
-    }
   }
   for (int i = 44100 * 0.39; i < 44100 * 0.4; ++i) {
     AudioSample<int16_t> sample(1);
@@ -61,9 +58,6 @@ TEST(MuxTest, WriteDingDongWav) {
                  exp(float(i - 44100 * 0.39) / 44100.0 * 10) * 20000) *
                     k);
     audio.Write(sample);
-    if (auto pkt = encoder.Read()) {
-      mux.Write(std::move(*pkt));
-    }
   }
   for (int i = 44100 * 0.4; i < 44100 * 1.0; ++i) {
     AudioSample<int16_t> sample(1);
@@ -71,9 +65,6 @@ TEST(MuxTest, WriteDingDongWav) {
         int16_t(sin(float(i) / 44100 * 3.14 * 2 * 1000 * 4 / 5) /
                 exp(float(i - 44100 * 0.39) / 44100.0 * 10) * 20000);
     audio.Write(sample);
-    if (auto pkt = encoder.Read()) {
-      mux.Write(std::move(*pkt));
-    }
   }
   audio.Flush();
 }
@@ -95,7 +86,7 @@ TEST(MuxTest, WriteBoingMp3) {
   av_channel_layout_default(&params->ch_layout, 1);
 
   Mux mux(output_file, "mp3", {params});
-  Encoder encoder = mux.MakeEncoder(0);
+  Encoder encoder = mux.GetEncoder(0);
   AudioEncoder<int16_t> audio(encoder);
 
   for (int i = 0; i < 44100 * 1; ++i) {
@@ -103,14 +94,8 @@ TEST(MuxTest, WriteBoingMp3) {
     sample.sample(0) = int16_t(sin(float(i) / 44100 * 3.14 * 2 * 1000) /
                                exp(i / 44100.0 * 10) * 20000);
     audio.Write(sample);
-    while (auto pkt = encoder.Read()) {
-      mux.Write(std::move(*pkt));
-    }
   }
   audio.Flush();
-  while (auto pkt = encoder.Read()) {
-    mux.Write(std::move(*pkt));
-  }
 }
 
 }  // namespace potamos
